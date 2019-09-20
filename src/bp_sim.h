@@ -608,7 +608,12 @@ public:
     uint8_t             m_pad_end[104];
 
     /* CACHE_LINE */
+#ifdef __powerpc64__
+    // DRC - More padding needed on Power builds (CGenNode = 256 on Power)
+    uint64_t            m_pad3[16];
+#else
     uint64_t            m_pad3[8];
+#endif
 
 public:
     void free_command();
@@ -625,7 +630,12 @@ public:
     uint8_t             m_pad_end[104];
 
     /* CACHE_LINE */
+#ifdef __powerpc64__
+    // DRC - More padding needed on Power builds (CGenNode = 256 on Power)
+    uint64_t            m_pad3[16];
+#else
     uint64_t            m_pad3[8];
+#endif
 } __rte_cache_aligned;;
 
 
@@ -3385,6 +3395,21 @@ class CRXCoreIgnoreStat {
     uint64_t m_tx_ipv6_n_solic;
     uint64_t m_tot_bytes;
 };
+
+#if 0
+#define COMPILE_TIME_SIZEOF(t)      template<int s> struct SIZEOF_ ## t ## _IS; \
+                                    struct foo { \
+                                        int a,b; \
+                                    }; \
+                                    SIZEOF_ ## t ## _IS<sizeof(t)> SIZEOF_ ## t ## _IS;
+
+COMPILE_TIME_SIZEOF(CGenNodeCommand);
+COMPILE_TIME_SIZEOF(CGenNodeNatInfo);
+COMPILE_TIME_SIZEOF(CGenNodeLatencyPktInfo);
+COMPILE_TIME_SIZEOF(CGenNodeTXFIF);
+
+static_assert(sizeof(CGenNodeCommand) == 256, "Not 256");
+#endif
 
 static_assert(sizeof(CGenNodeCommand) == sizeof(CGenNode), "sizeof(CGenNodeCommand) != sizeof(CGenNode)" );
 static_assert(sizeof(CGenNodeNatInfo) == sizeof(CGenNode), "sizeof(CGenNodeNatInfo) != sizeof(CGenNode)" );

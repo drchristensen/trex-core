@@ -755,7 +755,6 @@ dpdk_src_x86_64 = SrcGroup(dir='src/dpdk/',
                  'drivers/net/ena/base/ena_com.c',
                  'drivers/net/ena/base/ena_eth_com.c',
 
-
                  #libs
                  'lib/librte_eal/common/arch/x86/rte_cpuflags.c',
                  'lib/librte_eal/common/arch/x86/rte_spinlock.c',
@@ -771,7 +770,32 @@ dpdk_src_aarch64 = SrcGroup(dir='src/dpdk/',
                  #libs
                  'lib/librte_eal/common/arch/arm/rte_cpuflags.c',
                  'lib/librte_eal/common/arch/arm/rte_cycles.c',
+                 ])
 
+dpdk_src_ppc64le = SrcGroup(dir='src/dpdk/',
+        src_list=[
+                 #i40e
+                 'drivers/net/i40e/base/i40e_adminq.c',
+                 'drivers/net/i40e/base/i40e_common.c',
+                 'drivers/net/i40e/base/i40e_dcb.c',
+                 'drivers/net/i40e/base/i40e_diag.c',
+                 'drivers/net/i40e/base/i40e_hmc.c',
+                 'drivers/net/i40e/base/i40e_lan_hmc.c',
+                 'drivers/net/i40e/base/i40e_nvm.c',
+                 'drivers/net/i40e/i40e_ethdev.c',
+                 'drivers/net/i40e/i40e_ethdev_vf.c',
+                 'drivers/net/i40e/i40e_fdir.c',
+                 'drivers/net/i40e/i40e_flow.c',
+                 'drivers/net/i40e/i40e_pf.c',
+                 'drivers/net/i40e/i40e_rxtx.c',
+                 'drivers/net/i40e/i40e_rxtx_vec_altivec.c',
+                 'drivers/net/i40e/i40e_tm.c',
+                 'drivers/net/i40e/i40e_vf_representor.c',
+                 'drivers/net/i40e/rte_pmd_i40e.c',
+
+                 #libs
+                 'lib/librte_eal/common/arch/ppc_64/rte_cpuflags.c',
+                 'lib/librte_eal/common/arch/ppc_64/rte_cycles.c',
                  ])
 
 
@@ -864,6 +888,7 @@ dpdk_src = SrcGroup(dir='src/dpdk/',
                  'lib/librte_eal/common/rte_service.c',
                  'lib/librte_eal/linux/eal/eal.c',
                  'lib/librte_eal/linux/eal/eal_alarm.c',
+                 'lib/librte_eal/linux/eal/eal_cpuflags.c',
                  'lib/librte_eal/linux/eal/eal_debug.c',
                  'lib/librte_eal/linux/eal/eal_hugepage_info.c',
                  'lib/librte_eal/linux/eal/eal_interrupts.c',
@@ -974,6 +999,17 @@ elif march == 'aarch64':
     # software BPF
     bpf = SrcGroups([bpf_src]);
 
+elif march == 'ppc64le':
+    bp_dpdk = SrcGroups([
+                  dpdk_src,
+                  dpdk_src_ppc64le
+                  ]);
+
+    # BPF + JIT
+    bpf = SrcGroups([
+                bpf_src,
+                bpfjit_src]);
+
 libmnl =SrcGroups([
                 libmnl_src
                 ]);
@@ -981,6 +1017,7 @@ libmnl =SrcGroups([
 ntacc_dpdk =SrcGroups([
                 ntacc_dpdk_src
                 ]);
+
 mlx5_dpdk =SrcGroups([
                 mlx5_dpdk_src
                 ]);
@@ -1093,6 +1130,26 @@ elif march == 'aarch64':
                        '-DRTE_MACHINE_SHA2',
                        '-DRTE_COMPILE_TIME_CPUFLAGS=RTE_CPUFLAG_NEON,RTE_CPUFLAG_CRC32,RTE_CPUFLAG_AES,RTE_CPUFLAG_PMULL,RTE_CPUFLAG_SHA1,RTE_CPUFLAG_SHA2',
                        ]
+elif march == 'ppc64le':
+    common_flags_new = common_flags + [
+                       '-mcpu=power9',
+                       '-DRTE_ARCH_64',
+                       '-DRTE_MACHINE_CPUFLAG_PPC64',
+                       '-DRTE_MACHINE_CPUFLAG_ALTIVEC',
+                       '-DRTE_MACHINE_CPUFLAG_VSX',
+                       '-DRTE_COMPILE_TIME_CPUFLAGS=RTE_CPUFLAG_PPC64,RTE_CPUFLAG_ALTIVEC,RTE_CPUFLAG_VSX',
+                       '-DTREX_USE_BPFJIT',
+                       ]
+    common_flags_old = common_flags + [
+                       '-mcpu=power9',
+                       '-DRTE_ARCH_64',
+                       '-DRTE_MACHINE_CPUFLAG_PPC64',
+                       '-DRTE_MACHINE_CPUFLAG_ALTIVEC',
+                       '-DRTE_MACHINE_CPUFLAG_VSX',
+                       '-DRTE_COMPILE_TIME_CPUFLAGS=RTE_CPUFLAG_PPC64,RTE_CPUFLAG_ALTIVEC,RTE_CPUFLAG_VSX',
+                       '-DTREX_USE_BPFJIT',
+                       ]
+
 
 
 dpdk_includes_path_x86_64 ='''
@@ -1101,6 +1158,10 @@ dpdk_includes_path_x86_64 ='''
 
 dpdk_includes_path_aarch64 ='''
                         ../src/dpdk/lib/librte_eal/common/include/arch/arm
+                       '''
+
+dpdk_includes_path_ppc64le ='''
+                        ../src/dpdk/lib/librte_eal/common/include/arch/ppc_64
                        '''
 
 dpdk_includes_path =''' ../src/
@@ -1165,6 +1226,8 @@ if march == 'x86_64':
     dpdk_includes_path = dpdk_includes_path_x86_64 + dpdk_includes_path
 elif march == 'aarch64':
     dpdk_includes_path = dpdk_includes_path_aarch64 + dpdk_includes_path
+elif march == 'ppc64le':
+    dpdk_includes_path = dpdk_includes_path_ppc64le + dpdk_includes_path
 
 
 includes_path = '''
@@ -1189,10 +1252,12 @@ includes_path = '''
 bpf_includes_path = '../external_libs/bpf ../external_libs/bpf/bpfjit'
 
 
-if march != 'aarch64':
+if march == 'x86_64':
     DPDK_FLAGS=['-D_GNU_SOURCE', '-DPF_DRIVER', '-DX722_SUPPORT', '-DX722_A0_SUPPORT', '-DVF_DRIVER', '-DINTEGRATED_VF', '-include', '../src/pal/linux_dpdk/dpdk1905_x86_64/rte_config.h'];
-else:
+elif march == 'aarch64':
     DPDK_FLAGS=['-D_GNU_SOURCE', '-DPF_DRIVER', '-DVF_DRIVER', '-DINTEGRATED_VF', '-DRTE_FORCE_INTRINSICS', '-include', '../src/pal/linux_dpdk/dpdk1905_aarch64/rte_config.h'];
+elif march == 'ppc64le':
+    DPDK_FLAGS=['-D_GNU_SOURCE', '-DPF_DRIVER', '-DX722_SUPPORT', '-DX722_A0_SUPPORT', '-DVF_DRIVER', '-DINTEGRATED_VF', '-include', '../src/pal/linux_dpdk/dpdk1905_ppc64le/rte_config.h'];
 
 client_external_libs = [
         'simple_enum',
@@ -1214,13 +1279,14 @@ DEBUG_      = "debug"
 PLATFORM_x86 = "x86"
 PLATFORM_x86_64 = "x86_64"
 PLATFORM_aarch64 = "aarch64"
+PLATFORM_ppc64le = "ppc64le"
 
 
 class build_option:
 
     def __init__(self,debug_mode,is_pie):
       self.mode     = debug_mode;   ##debug,release
-      self.platform = march  # aarch64 or x86_64
+      self.platform = march  # aarch64 or x86_64 or ppc64le
       self.is_pie = is_pie
       self.env = None
 
@@ -1256,8 +1322,11 @@ class build_option:
     def isArmPlatform (self):
         return ( self.platform == PLATFORM_aarch64)
 
+    def isPpcPlatform (self):
+        return ( self.platform == PLATFORM_ppc64le)
+
     def is64Platform (self):
-        return ( self.platform == PLATFORM_x86_64 or self.platform == PLATFORM_aarch64)
+        return ( self.platform == PLATFORM_x86_64 or self.platform == PLATFORM_aarch64 or self.platform == PLATFORM_ppc64le)
 
     def isRelease (self):
         return ( self.mode  == RELEASE_);
@@ -1360,7 +1429,10 @@ class build_option:
                 flags += ['-m32']
 
         if self.isRelease():
-            flags += ['-O3']
+            if self.isPpcPlatform():
+                flags += ['-O3']
+            else:
+                flags += ['-O3']
         else:
             flags += ['-O0','-D_DEBUG']
 
@@ -1377,7 +1449,7 @@ class build_option:
         else:
             flags += gcc_flags
 
-        if self.isIntelPlatform() and not self.is_clang():
+        if (self.isIntelPlatform() or self.isPpcPlatform()) and not self.is_clang():
             flags += [
                       '-Wno-aligned-new'
                      ]
