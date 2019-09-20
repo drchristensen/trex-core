@@ -1,6 +1,4 @@
 /*
- * Copyright (c) 2018, Mellanox Technologies inc.  All rights reserved.
- *
  * This software is available to you under a choice of one of two
  * licenses.  You may choose to be licensed under the terms of the GNU
  * General Public License (GPL) Version 2, available from the file
@@ -30,26 +28,14 @@
  * SOFTWARE.
  */
 
-#ifndef MLX5_USER_IOCTL_VERBS_H
-#define MLX5_USER_IOCTL_VERBS_H
+#ifndef INFINIBAND_SA_KERN_ABI_H
+#define INFINIBAND_SA_KERN_ABI_H
 
-#include <linux/types.h>
+#warning "This header is obsolete, use rdma/ib_user_sa.h instead"
 
-enum mlx5_ib_uapi_flow_action_flags {
-	MLX5_IB_UAPI_FLOW_ACTION_FLAGS_REQUIRE_METADATA	= 1 << 0,
-};
+#include <rdma/ib_user_sa.h>
 
-enum mlx5_ib_uapi_flow_table_type {
-	MLX5_IB_UAPI_FLOW_TABLE_TYPE_NIC_RX     = 0x0,
-	MLX5_IB_UAPI_FLOW_TABLE_TYPE_NIC_TX	= 0x1,
-};
-
-enum mlx5_ib_uapi_flow_action_packet_reformat_type {
-	MLX5_IB_UAPI_FLOW_ACTION_PACKET_REFORMAT_TYPE_L2_TUNNEL_TO_L2 = 0x0,
-	MLX5_IB_UAPI_FLOW_ACTION_PACKET_REFORMAT_TYPE_L2_TO_L2_TUNNEL = 0x1,
-	MLX5_IB_UAPI_FLOW_ACTION_PACKET_REFORMAT_TYPE_L3_TUNNEL_TO_L2 = 0x2,
-	MLX5_IB_UAPI_FLOW_ACTION_PACKET_REFORMAT_TYPE_L2_TO_L3_TUNNEL = 0x3,
-};
+#define ib_kern_path_rec ib_user_path_rec
+#define ibv_kern_path_rec ib_user_path_rec
 
 #endif
-

@@ -1,5 +1,6 @@
 /*
- * Copyright (c) 2018, Mellanox Technologies inc.  All rights reserved.
+ * Copyright (c) 2010 Intel Corporation.  All rights reserved.
+ * Copyright (c) 2014 Mellanox Technologies LTD. All rights reserved.
  *
  * This software is available to you under a choice of one of two
  * licenses.  You may choose to be licensed under the terms of the GNU
@@ -30,26 +31,33 @@
  * SOFTWARE.
  */
 
-#ifndef MLX5_USER_IOCTL_VERBS_H
-#define MLX5_USER_IOCTL_VERBS_H
+#ifndef _UMAD_CM_H
+#define _UMAD_CM_H
 
-#include <linux/types.h>
+#include <infiniband/umad_types.h>
 
-enum mlx5_ib_uapi_flow_action_flags {
-	MLX5_IB_UAPI_FLOW_ACTION_FLAGS_REQUIRE_METADATA	= 1 << 0,
-};
-
-enum mlx5_ib_uapi_flow_table_type {
-	MLX5_IB_UAPI_FLOW_TABLE_TYPE_NIC_RX     = 0x0,
-	MLX5_IB_UAPI_FLOW_TABLE_TYPE_NIC_TX	= 0x1,
-};
-
-enum mlx5_ib_uapi_flow_action_packet_reformat_type {
-	MLX5_IB_UAPI_FLOW_ACTION_PACKET_REFORMAT_TYPE_L2_TUNNEL_TO_L2 = 0x0,
-	MLX5_IB_UAPI_FLOW_ACTION_PACKET_REFORMAT_TYPE_L2_TO_L2_TUNNEL = 0x1,
-	MLX5_IB_UAPI_FLOW_ACTION_PACKET_REFORMAT_TYPE_L3_TUNNEL_TO_L2 = 0x2,
-	MLX5_IB_UAPI_FLOW_ACTION_PACKET_REFORMAT_TYPE_L2_TO_L3_TUNNEL = 0x3,
-};
-
+#ifdef __cplusplus
+extern "C" {
 #endif
 
+/* Communication management attributes */
+enum {
+	UMAD_CM_ATTR_REQ		= 0x0010,
+	UMAD_CM_ATTR_MRA		= 0x0011,
+	UMAD_CM_ATTR_REJ		= 0x0012,
+	UMAD_CM_ATTR_REP		= 0x0013,
+	UMAD_CM_ATTR_RTU		= 0x0014,
+	UMAD_CM_ATTR_DREQ		= 0x0015,
+	UMAD_CM_ATTR_DREP		= 0x0016,
+	UMAD_CM_ATTR_SIDR_REQ		= 0x0017,
+	UMAD_CM_ATTR_SIDR_REP		= 0x0018,
+	UMAD_CM_ATTR_LAP		= 0x0019,
+	UMAD_CM_ATTR_APR		= 0x001A,
+	UMAD_CM_ATTR_SAP		= 0x001B,
+	UMAD_CM_ATTR_SPR		= 0x001C,
+};
+
+#ifdef __cplusplus
+}
+#endif
+#endif				/* _UMAD_CM_H */

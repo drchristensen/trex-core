@@ -1,6 +1,4 @@
 /*
- * Copyright (c) 2018, Mellanox Technologies inc.  All rights reserved.
- *
  * This software is available to you under a choice of one of two
  * licenses.  You may choose to be licensed under the terms of the GNU
  * General Public License (GPL) Version 2, available from the file
@@ -30,26 +28,24 @@
  * SOFTWARE.
  */
 
-#ifndef MLX5_USER_IOCTL_VERBS_H
-#define MLX5_USER_IOCTL_VERBS_H
+#ifndef INFINIBAND_ARCH_H
+#define INFINIBAND_ARCH_H
 
-#include <linux/types.h>
+#include <stdint.h>
+#include <endian.h>
 
-enum mlx5_ib_uapi_flow_action_flags {
-	MLX5_IB_UAPI_FLOW_ACTION_FLAGS_REQUIRE_METADATA	= 1 << 0,
-};
+#warning "This header is obsolete."
 
-enum mlx5_ib_uapi_flow_table_type {
-	MLX5_IB_UAPI_FLOW_TABLE_TYPE_NIC_RX     = 0x0,
-	MLX5_IB_UAPI_FLOW_TABLE_TYPE_NIC_TX	= 0x1,
-};
-
-enum mlx5_ib_uapi_flow_action_packet_reformat_type {
-	MLX5_IB_UAPI_FLOW_ACTION_PACKET_REFORMAT_TYPE_L2_TUNNEL_TO_L2 = 0x0,
-	MLX5_IB_UAPI_FLOW_ACTION_PACKET_REFORMAT_TYPE_L2_TO_L2_TUNNEL = 0x1,
-	MLX5_IB_UAPI_FLOW_ACTION_PACKET_REFORMAT_TYPE_L3_TUNNEL_TO_L2 = 0x2,
-	MLX5_IB_UAPI_FLOW_ACTION_PACKET_REFORMAT_TYPE_L2_TO_L3_TUNNEL = 0x3,
-};
-
+#ifndef ntohll
+#undef htonll
+#undef ntohll
+/* Users should use the glibc functions directly, not these wrappers */
+static inline __attribute__((deprecated)) uint64_t htonll(uint64_t x) { return htobe64(x); }
+static inline __attribute__((deprecated)) uint64_t ntohll(uint64_t x) { return be64toh(x); }
+#define htonll htonll
+#define ntohll ntohll
 #endif
 
+/* Barrier macros are no longer provided by libibverbs */
+
+#endif /* INFINIBAND_ARCH_H */

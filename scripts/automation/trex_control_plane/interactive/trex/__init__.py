@@ -48,7 +48,12 @@ def __generate_module_path (module, ext_libs_path, is_python3, is_64bit):
         platform_path.append('python3' if is_python3 else 'python2')
 
     if module.get('arch-dep'):
-        platform_path.append('arm' if os.uname()[4] == 'aarch64' else 'intel')
+        if os.uname()[4] == 'x86_64':
+            platform_path.append('intel')
+        elif os.uname()[4] == 'aarch64':
+            platform_path.append('arm')
+        elif os.uname()[4] == 'ppc64le':
+            platform_path.append('ppc')
         platform_path.append('64bit' if is_64bit else '32bit')
 
     return os.path.normcase(os.path.join(ext_libs_path, *platform_path))

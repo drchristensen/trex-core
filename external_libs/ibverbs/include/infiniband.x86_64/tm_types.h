@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, Mellanox Technologies inc.  All rights reserved.
+ * Copyright (c) 2017 Mellanox Technologies Ltd.  All rights reserved.
  *
  * This software is available to you under a choice of one of two
  * licenses.  You may choose to be licensed under the terms of the GNU
@@ -28,28 +28,39 @@
  * ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
  * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
+ *
  */
-
-#ifndef MLX5_USER_IOCTL_VERBS_H
-#define MLX5_USER_IOCTL_VERBS_H
+#ifndef _TM_TYPES_H
+#define _TM_TYPES_H
 
 #include <linux/types.h>
+#include <stdint.h>
 
-enum mlx5_ib_uapi_flow_action_flags {
-	MLX5_IB_UAPI_FLOW_ACTION_FLAGS_REQUIRE_METADATA	= 1 << 0,
-};
-
-enum mlx5_ib_uapi_flow_table_type {
-	MLX5_IB_UAPI_FLOW_TABLE_TYPE_NIC_RX     = 0x0,
-	MLX5_IB_UAPI_FLOW_TABLE_TYPE_NIC_TX	= 0x1,
-};
-
-enum mlx5_ib_uapi_flow_action_packet_reformat_type {
-	MLX5_IB_UAPI_FLOW_ACTION_PACKET_REFORMAT_TYPE_L2_TUNNEL_TO_L2 = 0x0,
-	MLX5_IB_UAPI_FLOW_ACTION_PACKET_REFORMAT_TYPE_L2_TO_L2_TUNNEL = 0x1,
-	MLX5_IB_UAPI_FLOW_ACTION_PACKET_REFORMAT_TYPE_L3_TUNNEL_TO_L2 = 0x2,
-	MLX5_IB_UAPI_FLOW_ACTION_PACKET_REFORMAT_TYPE_L2_TO_L3_TUNNEL = 0x3,
-};
-
+#ifdef __cplusplus
+extern "C" {
 #endif
 
+enum ibv_tmh_op {
+	IBV_TMH_NO_TAG	      = 0,
+	IBV_TMH_RNDV	      = 1,
+	IBV_TMH_FIN	      = 2,
+	IBV_TMH_EAGER	      = 3,
+};
+
+struct ibv_tmh {
+	uint8_t		opcode;      /* from enum ibv_tmh_op */
+	uint8_t		reserved[3]; /* must be zero */
+	__be32		app_ctx;     /* opaque user data */
+	__be64		tag;
+};
+
+struct ibv_rvh {
+	__be64		va;
+	__be32		rkey;
+	__be32		len;
+};
+
+#ifdef __cplusplus
+}
+#endif
+#endif				/* _TM_TYPES_H */

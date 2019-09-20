@@ -417,15 +417,17 @@ Other network devices
         return (out.strip());
 
     def tune_mlx_device (self,pci_id):
+        # DRC - Not working correctly
         # set PCIe Read to 4K and not 512 ... need to add it to startup s
-        val=self.read_pci (pci_id,68)
-        if val[0]=='0':
-            #hypervisor does not give the right to write to this register
-            return;
-        if val[0]!='5':
-            val='5'+val[1:]
-            self.write_pci (pci_id,68,val)
-            assert(self.read_pci (pci_id,68)==val);
+        # val=self.read_pci (pci_id,68)
+        #if val[0]=='0':
+        #    #hypervisor does not give the right to write to this register
+        #    return;
+        #if val[0]!='5':
+        #    val='5'+val[1:]
+        #    self.write_pci (pci_id,68,val)
+        #    assert(self.read_pci (pci_id,68)==val);
+        return;
 
     def get_mtu_mlx (self,dev_id):
         if len(dev_id)>0:
@@ -884,9 +886,10 @@ Other network devices
                 self.set_only_mellanox_nics()
 
         if self.get_only_mellanox_nics():
-            if not pa().no_ofed_check:
-                self.verify_ofed_os()
-                self.check_ofed_version()
+            # DRC - Figure this out
+            # if not pa().no_ofed_check:
+                # self.verify_ofed_os()
+                # self.check_ofed_version()
 
             for key in if_list:
                 if key == 'dummy':

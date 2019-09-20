@@ -740,6 +740,9 @@ dpdk_src_x86_64 = SrcGroup(dir='src/dpdk/',
                  'drivers/net/i40e/i40e_vf_representor.c',
                  'drivers/net/i40e/rte_pmd_i40e.c',
 
+                 #mlx5
+                 'mlx5_rxtx_vec.c',
+
                  #virtio
                  'drivers/net/virtio/virtio_rxtx_simple_sse.c',
 
@@ -955,7 +958,6 @@ mlx5_dpdk_src = SrcGroup(
         'mlx5_rxmode.c',
         'mlx5_rxq.c',
         'mlx5_rxtx.c',
-        'mlx5_rxtx_vec.c',
         'mlx5_stats.c',
         'mlx5_trigger.c',
         'mlx5_txq.c',

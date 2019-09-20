@@ -11,7 +11,13 @@ import sys
 from zmq.constants import *
 from ctypes import *
 
-cpu_vendor = 'arm' if os.uname()[4] == 'aarch64' else 'intel'
+# DRC - Consider putting Intel last to avoid 32bit issues
+if os.uname()[4] == 'x86_64':
+    cpu_vendor = 'intel'
+elif os.uname()[4] == 'aarch64':
+    cpu_vendor = 'arm'
+elif os.uname()[4] == 'ppc64le':
+    cpu_vendor = 'ppc'
 cpu_bits   = '64bit' if sys.maxsize > 0xffffffff else '32bit'
 
 cur_dir = os.path.abspath(os.path.dirname(__file__))

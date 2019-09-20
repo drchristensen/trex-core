@@ -13,7 +13,12 @@ _ext_libs = [ {'name': 'simple_enum'},
 
 def _import_server_modules():
 
-    cpu_vendor = 'arm' if os.uname()[4] == 'aarch64' else 'intel'
+    if os.uname()[4] == 'x86_64':
+        cpu_vendor = 'intel'
+    elif os.uname()[4] == 'aarch64':
+        cpu_vendor = 'arm'
+    elif os.uname()[4] == 'ppc64le':
+        cpu_vendor = 'ppc'
     cpu_bits   = '64bit' if sys.maxsize > 0xffffffff else '32bit'
     python_ver = 'python%s' % sys.version_info.major
 

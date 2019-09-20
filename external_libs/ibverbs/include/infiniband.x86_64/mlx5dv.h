@@ -193,6 +193,26 @@ struct ibv_qp *mlx5dv_create_qp(struct ibv_context *context,
 				struct ibv_qp_init_attr_ex *qp_attr,
 				struct mlx5dv_qp_init_attr *mlx5_qp_attr);
 
+struct mlx5dv_qp_ex {
+	uint64_t comp_mask;
+	/*
+	 * Available just for the MLX5 DC QP type with send opcodes of type:
+	 * rdma, atomic and send.
+	 */
+	void (*wr_set_dc_addr)(struct mlx5dv_qp_ex *mqp, struct ibv_ah *ah,
+			       uint32_t remote_dctn, uint64_t remote_dc_key);
+};
+
+struct mlx5dv_qp_ex *mlx5dv_qp_ex_from_ibv_qp_ex(struct ibv_qp_ex *qp);
+
+static inline void mlx5dv_wr_set_dc_addr(struct mlx5dv_qp_ex *mqp,
+					 struct ibv_ah *ah,
+					 uint32_t remote_dctn,
+					 uint64_t remote_dc_key)
+{
+	mqp->wr_set_dc_addr(mqp, ah, remote_dctn, remote_dc_key);
+}
+
 enum mlx5dv_flow_action_esp_mask {
 	MLX5DV_FLOW_ACTION_ESP_MASK_FLAGS	= 1 << 0,
 };
@@ -207,13 +227,18 @@ struct mlx5dv_flow_match_parameters {
 	uint64_t match_buf[]; /* Device spec format */
 };
 
+enum mlx5dv_flow_matcher_attr_mask {
+	MLX5DV_FLOW_MATCHER_MASK_FT_TYPE = 1 << 0,
+};
+
 struct mlx5dv_flow_matcher_attr {
 	enum ibv_flow_attr_type type;
 	uint32_t flags; /* From enum ibv_flow_flags */
 	uint16_t priority;
 	uint8_t match_criteria_enable; /* Device spec format */
 	struct mlx5dv_flow_match_parameters *match_mask;
-	uint64_t comp_mask;
+	uint64_t comp_mask; /* use mlx5dv_flow_matcher_attr_mask */
+	enum mlx5dv_flow_table_type ft_type;
 };
 
 struct mlx5dv_flow_matcher;
@@ -298,6 +323,7 @@ int mlx5dv_query_device(struct ibv_context *ctx_in,
 enum mlx5dv_qp_comp_mask {
 	MLX5DV_QP_MASK_UAR_MMAP_OFFSET		= 1 << 0,
 	MLX5DV_QP_MASK_RAW_QP_HANDLES		= 1 << 1,
+	MLX5DV_QP_MASK_RAW_QP_TIR_ADDR		= 1 << 2,
 };
 
 struct mlx5dv_qp {
@@ -322,6 +348,7 @@ struct mlx5dv_qp {
 	uint32_t		tisn;
 	uint32_t		rqn;
 	uint32_t		sqn;
+	uint64_t		tir_icm_addr;
 };
 
 struct mlx5dv_cq {
@@ -356,11 +383,25 @@ struct mlx5dv_rwq {
 	uint64_t	comp_mask;
 };
 
+struct mlx5dv_alloc_dm_attr {
+	enum mlx5dv_alloc_dm_type type;
+	uint64_t comp_mask;
+};
+
+enum mlx5dv_dm_comp_mask {
+	MLX5DV_DM_MASK_REMOTE_VA	= 1 << 0,
+};
+
 struct mlx5dv_dm {
 	void		*buf;
 	uint64_t	length;
 	uint64_t	comp_mask;
+	uint64_t	remote_va;
 };
+
+struct ibv_dm *mlx5dv_alloc_dm(struct ibv_context *context,
+			       struct ibv_alloc_dm_attr *dm_attr,
+			       struct mlx5dv_alloc_dm_attr *mlx5_dm_attr);
 
 struct mlx5_wqe_av;
 
@@ -509,6 +550,10 @@ enum {
 	MLX5_CQE_SYNDROME_TRANSPORT_RETRY_EXC_ERR	= 0x15,
 	MLX5_CQE_SYNDROME_RNR_RETRY_EXC_ERR		= 0x16,
 	MLX5_CQE_SYNDROME_REMOTE_ABORTED_ERR		= 0x22,
+};
+
+enum {
+	MLX5_CQE_VENDOR_SYNDROME_ODP_PFAULT		= 0x93,
 };
 
 enum {
@@ -1169,8 +1214,379 @@ int mlx5dv_devx_ind_tbl_modify(struct ibv_rwq_ind_table *ind_tbl,
 			       const void *in, size_t inlen,
 			       void *out, size_t outlen);
 
+struct mlx5dv_devx_cmd_comp {
+	int fd;
+};
+
+struct mlx5dv_devx_cmd_comp *
+mlx5dv_devx_create_cmd_comp(struct ibv_context *context);
+void mlx5dv_devx_destroy_cmd_comp(struct mlx5dv_devx_cmd_comp *cmd_comp);
+int mlx5dv_devx_obj_query_async(struct mlx5dv_devx_obj *obj, const void *in,
+				size_t inlen, size_t outlen,
+				uint64_t wr_id,
+				struct mlx5dv_devx_cmd_comp *cmd_comp);
+
+int mlx5dv_devx_get_async_cmd_comp(struct mlx5dv_devx_cmd_comp *cmd_comp,
+				   struct mlx5dv_devx_async_cmd_hdr *cmd_resp,
+				   size_t cmd_resp_len);
+
+#define __devx_nullp(typ) ((struct mlx5_ifc_##typ##_bits *)NULL)
+#define __devx_st_sz_bits(typ) sizeof(struct mlx5_ifc_##typ##_bits)
+#define __devx_bit_sz(typ, fld) sizeof(__devx_nullp(typ)->fld)
+#define __devx_bit_off(typ, fld) offsetof(struct mlx5_ifc_##typ##_bits, fld)
+#define __devx_dw_off(bit_off) ((bit_off) / 32)
+#define __devx_64_off(bit_off) ((bit_off) / 64)
+#define __devx_dw_bit_off(bit_sz, bit_off) (32 - (bit_sz) - ((bit_off) & 0x1f))
+#define __devx_mask(bit_sz) ((uint32_t)((1ull << (bit_sz)) - 1))
+#define __devx_dw_mask(bit_sz, bit_off)                                        \
+	(__devx_mask(bit_sz) << __devx_dw_bit_off(bit_sz, bit_off))
+
+#define DEVX_FLD_SZ_BYTES(typ, fld) (__devx_bit_sz(typ, fld) / 8)
+#define DEVX_ST_SZ_BYTES(typ) (sizeof(struct mlx5_ifc_##typ##_bits) / 8)
+#define DEVX_ST_SZ_DW(typ) (sizeof(struct mlx5_ifc_##typ##_bits) / 32)
+#define DEVX_ST_SZ_QW(typ) (sizeof(struct mlx5_ifc_##typ##_bits) / 64)
+#define DEVX_UN_SZ_BYTES(typ) (sizeof(union mlx5_ifc_##typ##_bits) / 8)
+#define DEVX_UN_SZ_DW(typ) (sizeof(union mlx5_ifc_##typ##_bits) / 32)
+#define DEVX_BYTE_OFF(typ, fld) (__devx_bit_off(typ, fld) / 8)
+#define DEVX_ADDR_OF(typ, p, fld)                                              \
+	((unsigned char *)(p) + DEVX_BYTE_OFF(typ, fld))
+
+static inline void _devx_set(void *p, uint32_t value, size_t bit_off,
+			     size_t bit_sz)
+{
+	__be32 *fld = (__be32 *)(p) + __devx_dw_off(bit_off);
+	uint32_t dw_mask = __devx_dw_mask(bit_sz, bit_off);
+	uint32_t mask = __devx_mask(bit_sz);
+
+	*fld = htobe32((be32toh(*fld) & (~dw_mask)) |
+		       ((value & mask) << __devx_dw_bit_off(bit_sz, bit_off)));
+}
+
+#define DEVX_SET(typ, p, fld, v)                                               \
+	_devx_set(p, v, __devx_bit_off(typ, fld), __devx_bit_sz(typ, fld))
+
+static inline uint32_t _devx_get(const void *p, size_t bit_off, size_t bit_sz)
+{
+	return ((be32toh(*((const __be32 *)(p) + __devx_dw_off(bit_off))) >>
+		 __devx_dw_bit_off(bit_sz, bit_off)) &
+		__devx_mask(bit_sz));
+}
+
+#define DEVX_GET(typ, p, fld)                                                  \
+	_devx_get(p, __devx_bit_off(typ, fld), __devx_bit_sz(typ, fld))
+
+static inline void _devx_set64(void *p, uint64_t v, size_t bit_off)
+{
+	*((__be64 *)(p) + __devx_64_off(bit_off)) = htobe64(v);
+}
+
+#define DEVX_SET64(typ, p, fld, v) _devx_set64(p, v, __devx_bit_off(typ, fld))
+
+static inline uint64_t _devx_get64(const void *p, size_t bit_off)
+{
+	return be64toh(*((const __be64 *)(p) + __devx_64_off(bit_off)));
+}
+
+#define DEVX_GET64(typ, p, fld) _devx_get64(p, __devx_bit_off(typ, fld))
+
+struct mlx5dv_dr_ns;
+struct mlx5dv_dr_tbl;
+struct mlx5dv_dr_matcher;
+struct mlx5dv_dr_rule;
+struct mlx5dv_dr_action;
+
+enum mlx5dv_dr_ns_type {
+	MLX5DV_DR_NS_TYPE_TERMINATING,
+};
+
+enum mlx5dv_dr_ns_domain {
+	MLX5DV_DR_NS_DOMAIN_INGRESS_BYPASS,
+	MLX5DV_DR_NS_DOMAIN_EGRESS_BYPASS,
+	MLX5DV_DR_NS_DOMAIN_FDB_BYPASS,
+	MLX5DV_DR_NS_DOMAIN_RESERVED,
+};
+
+enum mlx5dv_dr_action_flags {
+	MLX5DV_DR_ACTION_FLAGS_ROOT_LEVEL	= 1 << 0,
+	MLX5DV_DR_ACTION_FLAGS_RESERVED		= 1 << 1,
+};
+
+enum {
+	MLX5DV_DR_FLAGS_SYNC_SW		= 1 << 0,
+	MLX5DV_DR_FLAGS_SYNC_HW		= 1 << 1,
+	/* TBD:
+	MLX5DV_DR_FLAGS_SYNC_ASYNC	= 1 << 2,
+	*/
+};
+
+/*
+ * mlx5dv_dr_create_ft
+ *
+ * Input:
+ *	ns		- Name space that should contain the flow table.
+ *	level		- Flow table level, level 0 the root table
+ *
+ * Return: flow table on success or NULL if the request fails
+ */
+struct mlx5dv_dr_tbl *mlx5dv_dr_create_ft(struct mlx5dv_dr_ns *ns,
+					  uint32_t level);
+
+/*
+ * mlx5dv_dr_destroy_ft
+ *
+ * Input:
+ *	tbl		- Flow table to destroy.
+ *
+ * Return: 0 on success errno otherwise
+ */
+int mlx5dv_dr_destroy_ft(struct mlx5dv_dr_tbl *tbl);
+
+/*
+ * mlx5dv_dr_create_matcher
+ *
+ * Input:
+ *	tbl			- Flow table that should contain the matcher.
+ *	priority		- Matcher priority.
+ *	match_criteria_enable	- which of the headers and parameters in
+ *				  mask are used.
+ *	mask			- Mask for values to be filtered by the
+ *				  matcher.
+ *
+ * Return: matcher on success or NULL if the request fails
+ */
+struct mlx5dv_dr_matcher *
+mlx5dv_dr_create_matcher(struct mlx5dv_dr_tbl *tbl,
+			 uint16_t priority,
+			 uint8_t match_criteria_enable,
+			 struct mlx5dv_flow_match_parameters *mask);
+
+/*
+ * mlx5dv_dr_destroy_matcher
+ *
+ * Input:
+ *	matcher		- matcher to destroy.
+ *
+ * Return: 0 on success errno otherwise
+ */
+int mlx5dv_dr_destroy_matcher(struct mlx5dv_dr_matcher *matcher);
+
+/*
+ * mlx5dv_dr_create_ns
+ *
+ * Input:
+ *	ctx		- struct ibv_context to use.
+ *	domain 		- specific domain to use.
+ *
+ * Return: ns obj on success NULL otherwise
+ */
+struct mlx5dv_dr_ns *mlx5dv_dr_create_ns(struct ibv_context *ctx,
+					 enum mlx5dv_dr_ns_domain domain);
+
+/*
+ * mlx5dv_dr_destroy_ns
+ *
+ * Input:
+ *	ns		- ns obj to destroy.
+ *
+ * Return: 0 on success errno otherwise
+ */
+int mlx5dv_dr_destroy_ns(struct mlx5dv_dr_ns *ns);
+
+/*
+ * mlx5dv_dr_create_rule
+ *
+ * Input:
+ *	matcher		- will be added in this matcher.
+ *	value		- data to be matched
+ *	num_actions	- number of actions, appear in the next parameter
+ *	actions		- to be taken on hit for this rule
+ *
+ * Return: rule handle on success NULL otherwise
+ */
+struct mlx5dv_dr_rule *mlx5dv_dr_create_rule(struct mlx5dv_dr_matcher *matcher,
+					     struct mlx5dv_flow_match_parameters *value,
+					     size_t num_actions,
+					     struct mlx5dv_dr_action *actions[]);
+/*
+ * mlx5dv_dr_destroy_rule
+ *
+ * Input:
+ *	rule		- to delete
+ *
+ * Return: 0 on success errno otherwise
+ */
+int mlx5dv_dr_destroy_rule(struct mlx5dv_dr_rule *rule);
+
+/*
+ * mlx5dv_dr_create_action_dest_ibv_qp
+ *
+ * Input:
+ *	ibqp		- Destination QP
+ *
+ * Return: action handle on success NULL otherwise
+ */
+struct mlx5dv_dr_action *
+mlx5dv_dr_create_action_dest_ibv_qp(struct ibv_qp *ibqp);
+
+/*
+ * mlx5dv_dr_create_action_dest_flow_table
+ *
+ * Input:
+ *	ft		- Destination ft.
+ *
+ * Return: action handle on success NULL otherwise
+ */
+struct mlx5dv_dr_action *
+mlx5dv_dr_create_action_dest_flow_table(struct mlx5dv_dr_tbl *ft);
+
+/*
+ * mlx5dv_dr_create_action_drop
+ *
+ * Return: action handle on success NULL otherwise
+ */
+struct mlx5dv_dr_action *mlx5dv_dr_create_action_drop(void);
+
+/*
+ * mlx5dv_dr_create_action_tag
+ *
+ * Input:
+ *	tag		- Flow tag (24b).
+ *
+ * Return: action handle on success NULL otherwise
+ */
+struct mlx5dv_dr_action *mlx5dv_dr_create_action_tag(uint32_t tag_value);
+
+/*
+ * mlx5dv_dr_create_action_devx_counter
+ *
+ * Input:
+ *	devx_obj		- Devx counter object.
+ *	offeset			- Counter offeset in bulk (otherwise 0)
+ *
+ * Return: action handle on success NULL otherwise
+ */
+struct mlx5dv_dr_action *
+mlx5dv_dr_create_action_devx_counter(struct mlx5dv_devx_obj *devx_obj,
+				     uint32_t offeset);
+
+/*
+ * mlx5dv_dr_create_action_packet_reformat
+ * Input:
+ *	ns		- Name space
+ *	action_flags	- Actions flags
+ *	reformat_type	- Reformatting type (tnl_l3_to_l2, tnl_l2_to_l2, etc.)
+ *	data_sz		- data size
+ *	data		- data
+ *
+ * Return: action handle on success NULL otherwise
+ */
+struct mlx5dv_dr_action *
+mlx5dv_dr_create_action_packet_reformat(struct mlx5dv_dr_ns *ns,
+					enum mlx5dv_dr_action_flags action_flags,
+					enum mlx5dv_flow_action_packet_reformat_type reformat_type,
+					size_t data_sz, void *data);
+
+/*
+ * mlx5dv_dr_create_action_modify_header
+ *
+ * Input:
+ *	ns		- Name space
+ *	action_flags	- Actions flags
+ *	actions_sz	- The size of *actions* buffer in bytes.
+ *	actions		- A buffer which contains modify actions provided in
+ *			  device spec format.
+ *
+ * Return: action handle on success NULL otherwise
+ */
+struct mlx5dv_dr_action *
+mlx5dv_dr_create_action_modify_header(struct mlx5dv_dr_ns *ns,
+				      enum mlx5dv_dr_action_flags action_flags,
+				      size_t actions_sz,
+				      uint64_t actions[]);
+
+struct mlx5dv_dr_flow_meter_init_attr {
+	struct mlx5dv_dr_tbl	*policer_ft;
+	uint8_t			active;
+	uint8_t			reg_c_index;
+	void			*flow_meter_parameter;
+	size_t			flow_meter_parameter_sz;
+};
+
+/*
+ * mlx5dv_dr_create_action_pop_vlan
+ *
+ * Return: action handle on success NULL otherwise
+ */
+struct mlx5dv_dr_action *mlx5dv_dr_create_action_pop_vlan(void);
+
+/*
+ * mlx5dv_dr_create_action_push_vlan
+ *
+ * input:
+ *	vlan_hdr - vlan header in network order - tpid,pcp,dei,vid
+ * Return: action handle on success NULL otherwise
+ */
+struct mlx5dv_dr_action *mlx5dv_dr_create_action_push_vlan(uint32_t vlan_hdr);
+
+/*
+ * mlx5dv_dr_create_action_devx_meter
+ *
+ * Input:
+ *	attr		- Attributes to allocate the meter with
+ *
+ * Return: action handle on success NULL otherwise
+ */
+struct mlx5dv_dr_action *
+mlx5dv_dr_create_action_flow_meter(struct mlx5dv_dr_flow_meter_init_attr *attr);
+
+/*
+ * mlx5dv_dr_modify_action_flow_meter
+ *
+ * Input:
+ *	action			- Meter action
+ *	attr			- Attributes to modify the meter with
+ *	modify_field_select 	- bitmap of which fields to modify
+ *
+ * Return: 0 on success errno otherwise
+ */
+int mlx5dv_dr_modify_action_flow_meter(struct mlx5dv_dr_action *action,
+				       struct mlx5dv_dr_flow_meter_init_attr *attr,
+				       uint64_t modify_field_select);
+
+/*
+ * mlx5dv_dr_create_action_dest_vport
+ *
+ * Input:
+ * 	ns			- Name space
+ * 	vport			- Destination PRM vport
+ *
+ * Return: action handle on success NULL otherwise
+ */
+struct mlx5dv_dr_action
+*mlx5dv_dr_create_action_dest_vport(struct mlx5dv_dr_ns *ns,
+				    uint32_t vport);
+
+/*
+ * mlx5dv_dr_destroy_action
+ *
+ * Input:
+ *	action		- Action handle to delete.
+ *
+ * Return: 0 on success errno otherwise
+ */
+int mlx5dv_dr_destroy_action(struct mlx5dv_dr_action *action);
+
+/*
+ * mlx5dv_dr_sync_domain
+ *
+ * Input:
+ *	ns		- Specific namespace to be synced.
+ *	flags		- sync flags
+ *
+ * Return: 0 on success errno otherwise
+ */
+int mlx5dv_dr_sync_domain(struct mlx5dv_dr_ns *ns, uint32_t flags);
 #ifdef __cplusplus
 }
 #endif
-
 #endif /* _MLX5DV_H_ */
