@@ -32,7 +32,7 @@ march = os.uname()[4]
 
 b_path ="./build/linux_dpdk/"
 
-so_path = '../scripts/so'
+so_path = '../scripts/so/' + march
 bird_path = '../scripts/bird'
 
 C_VER_FILE      = "version.c"
@@ -1274,7 +1274,7 @@ client_external_libs = [
         'repoze'
         ]
 
-rpath_linkage = ['so']
+rpath_linkage = ['so', 'so/' + march]
 
 RELEASE_    = "release"
 DEBUG_      = "debug"
