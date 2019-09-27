@@ -722,26 +722,10 @@ dpdk_src_x86_64 = SrcGroup(dir='src/dpdk/',
                  'drivers/net/ixgbe/rte_pmd_ixgbe.c',
 
                  #i40e
-                 'drivers/net/i40e/base/i40e_adminq.c',
-                 'drivers/net/i40e/base/i40e_common.c',
-                 'drivers/net/i40e/base/i40e_dcb.c',
-                 'drivers/net/i40e/base/i40e_diag.c',
-                 'drivers/net/i40e/base/i40e_hmc.c',
-                 'drivers/net/i40e/base/i40e_lan_hmc.c',
-                 'drivers/net/i40e/base/i40e_nvm.c',
-                 'drivers/net/i40e/i40e_ethdev.c',
-                 'drivers/net/i40e/i40e_ethdev_vf.c',
-                 'drivers/net/i40e/i40e_fdir.c',
-                 'drivers/net/i40e/i40e_flow.c',
-                 'drivers/net/i40e/i40e_pf.c',
-                 'drivers/net/i40e/i40e_rxtx.c',
                  'drivers/net/i40e/i40e_rxtx_vec_sse.c',
-                 'drivers/net/i40e/i40e_tm.c',
-                 'drivers/net/i40e/i40e_vf_representor.c',
-                 'drivers/net/i40e/rte_pmd_i40e.c',
 
                  #mlx5
-                 'mlx5_rxtx_vec.c',
+                 'drivers/net/mlx5/mlx5_rxtx_vec.c',
 
                  #virtio
                  'drivers/net/virtio/virtio_rxtx_simple_sse.c',
@@ -778,23 +762,7 @@ dpdk_src_aarch64 = SrcGroup(dir='src/dpdk/',
 dpdk_src_ppc64le = SrcGroup(dir='src/dpdk/',
         src_list=[
                  #i40e
-                 'drivers/net/i40e/base/i40e_adminq.c',
-                 'drivers/net/i40e/base/i40e_common.c',
-                 'drivers/net/i40e/base/i40e_dcb.c',
-                 'drivers/net/i40e/base/i40e_diag.c',
-                 'drivers/net/i40e/base/i40e_hmc.c',
-                 'drivers/net/i40e/base/i40e_lan_hmc.c',
-                 'drivers/net/i40e/base/i40e_nvm.c',
-                 'drivers/net/i40e/i40e_ethdev.c',
-                 'drivers/net/i40e/i40e_ethdev_vf.c',
-                 'drivers/net/i40e/i40e_fdir.c',
-                 'drivers/net/i40e/i40e_flow.c',
-                 'drivers/net/i40e/i40e_pf.c',
-                 'drivers/net/i40e/i40e_rxtx.c',
                  'drivers/net/i40e/i40e_rxtx_vec_altivec.c',
-                 'drivers/net/i40e/i40e_tm.c',
-                 'drivers/net/i40e/i40e_vf_representor.c',
-                 'drivers/net/i40e/rte_pmd_i40e.c',
 
                  #libs
                  'lib/librte_eal/common/arch/ppc_64/rte_cpuflags.c',
@@ -939,6 +907,27 @@ libmnl_src = SrcGroup(
         'attr.c',
     ]);
 
+i40e_dpdk_src = SrcGroup(
+    dir = 'src/dpdk/drivers/net/i40e',
+    src_list = [
+        'base/i40e_adminq.c',
+        'base/i40e_common.c',
+        'base/i40e_dcb.c',
+        'base/i40e_diag.c',
+        'base/i40e_hmc.c',
+        'base/i40e_lan_hmc.c',
+        'base/i40e_nvm.c',
+        'i40e_ethdev.c',
+        'i40e_ethdev_vf.c',
+        'i40e_fdir.c',
+        'i40e_flow.c',
+        'i40e_pf.c',
+        'i40e_rxtx.c',
+        'i40e_tm.c',
+        'i40e_vf_representor.c',
+        'rte_pmd_i40e.c',
+    ]);
+
 mlx5_dpdk_src = SrcGroup(
     dir = 'src/dpdk/drivers/net/mlx5',
     src_list = [
@@ -983,7 +972,8 @@ mlx4_dpdk_src = SrcGroup(
 if march == 'x86_64':
     bp_dpdk = SrcGroups([
                   dpdk_src,
-                  dpdk_src_x86_64
+                  dpdk_src_x86_64,
+                  i40e_dpdk_src
                   ]);
 
     # BPF + JIT
@@ -1004,7 +994,8 @@ elif march == 'aarch64':
 elif march == 'ppc64le':
     bp_dpdk = SrcGroups([
                   dpdk_src,
-                  dpdk_src_ppc64le
+                  dpdk_src_ppc64le,
+                  i40e_dpdk_src
                   ]);
 
     # BPF + JIT
@@ -1018,6 +1009,10 @@ libmnl =SrcGroups([
 
 ntacc_dpdk =SrcGroups([
                 ntacc_dpdk_src
+                ]);
+
+i40e_dpdk =SrcGroups([
+                i40e_dpdk_src
                 ]);
 
 mlx5_dpdk =SrcGroups([
@@ -1044,7 +1039,7 @@ bp =SrcGroups([
         stateless_src,
         astf_batch_src,
         astf_src,
-                
+
         version_src,
     ]);
 
