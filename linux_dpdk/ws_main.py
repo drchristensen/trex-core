@@ -724,9 +724,6 @@ dpdk_src_x86_64 = SrcGroup(dir='src/dpdk/',
                  #i40e
                  'drivers/net/i40e/i40e_rxtx_vec_sse.c',
 
-                 #mlx5
-                 'drivers/net/mlx5/mlx5_rxtx_vec.c',
-
                  #virtio
                  'drivers/net/virtio/virtio_rxtx_simple_sse.c',
 
@@ -928,7 +925,33 @@ i40e_dpdk_src = SrcGroup(
         'rte_pmd_i40e.c',
     ]);
 
-mlx5_dpdk_src = SrcGroup(
+mlx5_x86_64_dpdk_src = SrcGroup(
+    dir = 'src/dpdk/drivers/net/mlx5',
+    src_list = [
+        'mlx5.c',
+        'mlx5_devx_cmds.c',
+        'mlx5_ethdev.c',
+        'mlx5_flow.c',
+        'mlx5_flow_dv.c',
+        'mlx5_flow_tcf.c',
+        'mlx5_flow_verbs.c',
+        'mlx5_glue.c',
+        'mlx5_mac.c',
+        'mlx5_mp.c',
+        'mlx5_mr.c',
+        'mlx5_nl.c',
+        'mlx5_rss.c',
+        'mlx5_rxmode.c',
+        'mlx5_rxq.c',
+        'mlx5_rxtx.c',
+        'mlx5_rxtx_vec.c',
+        'mlx5_stats.c',
+        'mlx5_trigger.c',
+        'mlx5_txq.c',
+        'mlx5_vlan.c',
+    ]);
+
+mlx5_ppc64le_dpdk_src = SrcGroup(
     dir = 'src/dpdk/drivers/net/mlx5',
     src_list = [
         'mlx5.c',
@@ -953,6 +976,7 @@ mlx5_dpdk_src = SrcGroup(
         'mlx5_vlan.c',
     ]);
 
+
 mlx4_dpdk_src = SrcGroup(
     dir = 'src/dpdk/drivers/net/mlx4',
     src_list = [
@@ -972,8 +996,8 @@ mlx4_dpdk_src = SrcGroup(
 if march == 'x86_64':
     bp_dpdk = SrcGroups([
                   dpdk_src,
-                  dpdk_src_x86_64,
-                  i40e_dpdk_src
+                  i40e_dpdk_src,
+                  dpdk_src_x86_64
                   ]);
 
     # BPF + JIT
@@ -994,8 +1018,8 @@ elif march == 'aarch64':
 elif march == 'ppc64le':
     bp_dpdk = SrcGroups([
                   dpdk_src,
-                  dpdk_src_ppc64le,
-                  i40e_dpdk_src
+                  i40e_dpdk_src,
+                  dpdk_src_ppc64le
                   ]);
 
     # BPF + JIT
@@ -1015,8 +1039,12 @@ i40e_dpdk =SrcGroups([
                 i40e_dpdk_src
                 ]);
 
-mlx5_dpdk =SrcGroups([
-                mlx5_dpdk_src
+mlx5_x86_64_dpdk =SrcGroups([
+                mlx5_x86_64_dpdk_src
+                ]);
+
+mlx5_ppc64le_dpdk =SrcGroups([
+                mlx5_ppc64le_dpdk_src
                 ]);
 
 mlx4_dpdk =SrcGroups([
@@ -1547,24 +1575,38 @@ def build_prog (bld, build_obj):
             )
             bld.env.mlx5_use = [build_obj.get_libmnl_target()]
 
-        bld.shlib(
-          features='c',
-          includes = dpdk_includes_path +
-                     bld.env.dpdk_includes_verb_path +
-                     bld.env.libmnl_path,
-          cflags   = (cflags + DPDK_FLAGS + build_obj.get_mlx5_flags() ),
-          use      = ['ibverbs','mlx5'] + bld.env.mlx5_use,
-          source   = mlx5_dpdk.file_list(top),
-          target   = build_obj.get_mlx5_target(),
-          **bld.env.mlx5_kw
-        )
+        if march == 'x86_64':
+            bld.shlib(
+              features='c',
+              includes = dpdk_includes_path +
+                         bld.env.dpdk_includes_verb_path +
+                         bld.env.libmnl_path,
+              cflags   = (cflags + DPDK_FLAGS + build_obj.get_mlx5_flags() ),
+              use      = ['ibverbs','mlx5'] + bld.env.mlx5_use,
+              source   = mlx5_x86_64_dpdk.file_list(top),
+              target   = build_obj.get_mlx5_target(),
+              **bld.env.mlx5_kw
+            )
+        elif march == 'ppc64le':
+            bld.shlib(
+              features='c',
+              includes = dpdk_includes_path +
+                         bld.env.dpdk_includes_verb_path +
+                         bld.env.libmnl_path,
+              cflags   = (cflags + DPDK_FLAGS + build_obj.get_mlx5_flags() ),
+              use      = ['ibverbs','mlx5'] + bld.env.mlx5_use,
+              source   = mlx5_ppc64le_dpdk.file_list(top),
+              target   = build_obj.get_mlx5_target(),
+              **bld.env.mlx5_kw
+            )
+
 
         bld.shlib(
         features='c',
         includes = dpdk_includes_path +
                    bld.env.dpdk_includes_verb_path,
         cflags   = (cflags + DPDK_FLAGS + build_obj.get_mlx4_flags(bld) ),
-            use =['ibverbs', 'mlx4'],
+        use      =['ibverbs', 'mlx4'],
         source   = mlx4_dpdk.file_list(top),
         target   = build_obj.get_mlx4_target()
        )
