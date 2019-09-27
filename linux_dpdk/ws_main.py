@@ -166,7 +166,7 @@ def options(opt):
 def check_ibverbs_deps(bld):
     if 'LDD' not in bld.env or not len(bld.env['LDD']):
         bld.fatal('Please run configure. Missing key LDD.')
-    cmd = '%s %s/external_libs/ibverbs/libibverbs.so' % (bld.env['LDD'][0], top)
+    cmd = '%s %s/external_libs/ibverbs/%s/libibverbs.so' % (bld.env['LDD'][0], top, march)
     ret, out = getstatusoutput(cmd)
     if ret or not out:
         bld.fatal("Command of checking libraries '%s' failed.\nReturn status: %s\nOutput: %s" % (cmd, ret, out))
@@ -1670,7 +1670,7 @@ def build(bld):
             bld.read_shlib(name='mlx4')
         else:
             Logs.pprint('GREEN', 'Info: Using internal libverbs.')
-            ibverbs_lib_path='external_libs/ibverbs/'
+            ibverbs_lib_path='external_libs/ibverbs/' + march
             bld.env.dpdk_includes_verb_path = ' \n ../external_libs/ibverbs/include/ \n'
             bld.read_shlib( name='ibverbs' , paths=[top+ibverbs_lib_path] )
             bld.read_shlib( name='mlx5',paths=[top+ibverbs_lib_path])
