@@ -1708,7 +1708,7 @@ def build(bld):
         else:
             Logs.pprint('GREEN', 'Info: Using internal libverbs.')
             ibverbs_lib_path='external_libs/ibverbs/' + march
-            bld.env.dpdk_includes_verb_path = ' \n ../external_libs/ibverbs/include/ \n'
+            bld.env.dpdk_includes_verb_path = ' \n ../external_libs/ibverbs/' + march + '/include/ \n'
             bld.read_shlib( name='ibverbs' , paths=[top+ibverbs_lib_path] )
             bld.read_shlib( name='mlx5',paths=[top+ibverbs_lib_path])
             bld.read_shlib( name='mlx4',paths=[top+ibverbs_lib_path])
