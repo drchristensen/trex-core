@@ -4,6 +4,10 @@
 
 # hhaim
 import sys
+try:
+    xrange # Python 2
+except NameError:
+    xrange = range # Python 3
 import os
 python_ver = 'python%s' % sys.version_info[0]
 yaml_path = os.path.join('external_libs', 'pyyaml-3.11', python_ver)
@@ -161,7 +165,7 @@ class ConfigCreator(object):
             return Device_str
         for interface in interfaces_list:
             if interface['Device_str'] == 'dummy':
-                continue            
+                continue
             if Device_str != interface['Device_str']:
                 raise DpdkSetup('Interfaces should be of same type, got:\n\t* %s\n\t* %s' % (Device_str, interface['Device_str']))
         return Device_str
@@ -744,8 +748,8 @@ Other network devices
             if ret:
                 print("Could not start bird_server\nIf you don't need it, don't use --bird-server flag.")
                 sys.exit(-1)
-        
-        
+
+
 
     # check vdev Linux interfaces status
     # return True if interfaces are vdev
@@ -815,7 +819,7 @@ Other network devices
                 if iface_pci == device['Slot'].split('.')[0]:
                     if device.get('Driver_str') == 'i40e':
                         if pa() and pa().unbind_unused_ports:
-                            # if --unbind-unused-ports is set we unbind ports that are not 
+                            # if --unbind-unused-ports is set we unbind ports that are not
                             # used by TRex
                             unbind_devices.add(device['Slot'])
                         else:
@@ -1032,30 +1036,46 @@ Other network devices
         return pci_id.split('/')[0]
 
     def _get_cpu_topology(self):
-        cpu_topology_file = '/proc/cpuinfo'
-        # physical processor -> physical core -> logical processing units (threads)
+        # DRC - Start
         cpu_topology = OrderedDict()
-        if not os.path.exists(cpu_topology_file):
-            raise DpdkSetup('File with CPU topology (%s) does not exist.' % cpu_topology_file)
-        with open(cpu_topology_file) as f:
-            for lcore in f.read().split('\n\n'):
-                if not lcore:
-                    continue
-                lcore_dict = OrderedDict()
-                for line in lcore.split('\n'):
-                    key, val = line.split(':', 1)
-                    lcore_dict[key.strip()] = val.strip()
-                if 'processor' not in lcore_dict:
-                    continue
-                numa = int(lcore_dict.get('physical id', -1))
-                if numa not in cpu_topology:
-                    cpu_topology[numa] = OrderedDict()
-                core = int(lcore_dict.get('core id', lcore_dict['processor']))
-                if core not in cpu_topology[numa]:
-                    cpu_topology[numa][core] = []
-                cpu_topology[numa][core].append(int(lcore_dict['processor']))
-        if not cpu_topology:
-            raise DpdkSetup('Could not determine CPU topology from %s' % cpu_topology_file)
+
+        # Find the total number of CPUs (logical cores)
+        base_path = "/sys/devices/system/cpu"
+        fd = open("{}/kernel_max".format(base_path))
+        max_cpus = int(fd.read())
+        fd.close()
+
+        for cpu in xrange(max_cpus + 1):
+
+            # Find the socket ID of the current CPU
+            try:
+                fd = open("{}/cpu{}/topology/physical_package_id".format(base_path, cpu))
+            except IOError:
+                continue
+            except:
+                break
+            socket = int(fd.read())
+            fd.close()
+            if socket not in cpu_topology:
+                cpu_topology[socket] = OrderedDict()
+
+            # Find the core ID of the current CPU
+            try:
+                fd = open("{}/cpu{}/topology/core_id".format(base_path, cpu))
+            except IOError:
+                continue
+            except:
+                break
+            core = int(fd.read())
+            fd.close()
+            if core not in cpu_topology[socket]:
+                cpu_topology[socket][core] = []
+
+            # Capture the socket/core of the current CPU
+            cpu_topology[socket][core].append(cpu)
+
+        print("cpu_topology = ", cpu_topology)
+        # DRC - End
         return cpu_topology
 
     # input: list of different descriptions of interfaces: index, pci, name etc.
@@ -1072,7 +1092,7 @@ Other network devices
         sorted_pci = sorted(self.m_devices.keys())
         for interface in input_interfaces:
             if interface == 'dummy':
-                dev = {} 
+                dev = {}
                 dev['Vendor_str'] = ''
                 dev['Slot'] = ''
                 dev['Slot_str'] = 'dummy'
@@ -1537,4 +1557,3 @@ def main ():
 
 if __name__ == '__main__':
     main()
-
