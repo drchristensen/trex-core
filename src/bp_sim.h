@@ -608,8 +608,7 @@ public:
     uint8_t             m_pad_end[104];
 
     /* CACHE_LINE */
-#ifdef __powerpc64__
-    // DRC - More padding needed on Power builds (CGenNode = 256 on Power)
+#ifdef __PPC64__
     uint64_t            m_pad3[16];
 #else
     uint64_t            m_pad3[8];
@@ -630,8 +629,7 @@ public:
     uint8_t             m_pad_end[104];
 
     /* CACHE_LINE */
-#ifdef __powerpc64__
-    // DRC - More padding needed on Power builds (CGenNode = 256 on Power)
+#ifdef __PPC64__
     uint64_t            m_pad3[16];
 #else
     uint64_t            m_pad3[8];

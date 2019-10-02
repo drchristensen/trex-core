@@ -147,8 +147,7 @@ struct CGenNodeNatInfo : public CGenNodeMsgBase {
     //uint32_t      m_pad2;
     uint32_t      m_pad3;
     CNatFlowInfo  m_data[MAX_NAT_FLOW_INFO];
-#ifdef __powerpc64__
-    // DRC - More padding needed on Power builds (CGenNode = 256 on Power)
+#ifdef __PPC64__
     uint64_t      m_pad4[16];
 #else
     uint64_t      m_pad4[8];
@@ -179,8 +178,7 @@ struct CGenNodeLatencyPktInfo : public CGenNodeMsgBase {
     struct rte_mbuf *m_pkt;
 
     uint32_t      m_pad4[MAX_PKT_MSG_INFO];
-#ifdef __powerpc64__
-    // DRC - More padding needed on Power builds (CGenNode = 256 on Power)
+#ifdef __PPC64__
     uint64_t      m_pad5[16];
 #else
     uint64_t      m_pad5[8];

@@ -11,7 +11,6 @@ import sys
 from zmq.constants import *
 from ctypes import *
 
-# DRC - Consider putting Intel last to avoid 32bit issues
 if os.uname()[4] == 'x86_64':
     cpu_vendor = 'intel'
 elif os.uname()[4] == 'aarch64':
