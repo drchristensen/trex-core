@@ -223,9 +223,6 @@ def get_loaded_modules():
             loaded_mods = fd.readlines()
         for line in loaded_mods:
             loaded_modules.append(line.split()[0])
-        # DRC - Start
-        print(loaded_modules)
-        # DRC - End
     return loaded_modules
 
 def check_modules():
@@ -234,9 +231,6 @@ def check_modules():
 
     # list of supported modules
     mods =  [{"Name" : driver, "Found" : False} for driver in dpdk_drivers]
-    # DRC - Start
-    print(mods)
-    # DRC - End
 
     # first check if module is loaded
     for line in get_loaded_modules():
@@ -514,9 +508,6 @@ def get_nic_details():
         else:
             # should we warn the user?
             devices[d]['NUMA'] = -1
-    # DRC - Start
-    # print(devices)
-    # DRC - End
 
 def dev_id_from_dev_name(dev_name):
     '''Take a device "name" - a string passed in by user to identify a NIC
@@ -645,11 +636,6 @@ def bind_one(dev_id, driver, force):
     '''Bind the device given by "dev_id" to the driver "driver". If the device
     is already bound to a different driver, it will be unbound first'''
     dev = devices[dev_id]
-    # DRC - Start 
-    print(dev_id)
-    print(dev)
-    print(driver)
-    # DRC - End
     saved_driver = None # used to rollback any unbind in case of failure
 
     # prevent disconnection of our ssh session
@@ -679,9 +665,6 @@ def bind_one(dev_id, driver, force):
             dev["Driver_str"] = "" # clear driver string
 
     # if we are binding to one of DPDK drivers, add PCI id's to that driver
-    # DRC - Start
-    print(dpdk_drivers)
-    # DRC - End
     if driver in dpdk_drivers:
         filename = "/sys/bus/pci/drivers/%s/new_id" % driver
         try:
