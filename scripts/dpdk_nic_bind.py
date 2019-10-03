@@ -58,6 +58,8 @@ sys.path.remove(netstat_path)
 import re
 import termios
 
+march = os.uname()[4]
+
 # The PCI device class for ETHERNET devices
 ETHERNET_CLASS = "0200"
 NETWORK_CLASS = "0280"
@@ -79,7 +81,10 @@ devices = {}
 
 dpdk_and_kernel=[ "mlx5_core", "mlx5_ib", 'mlx4_core', 'mlx4_ib' ]
 
-dpdk_drivers = ["igb_uio", "vfio-pci", "uio_pci_generic" ]
+if march == 'ppc64le':
+    dpdk_drivers = ["vfio-pci"]
+else:
+    dpdk_drivers = ["igb_uio", "vfio-pci", "uio_pci_generic" ]
 
 # command-line arg flags
 b_flag = None
@@ -218,14 +223,20 @@ def get_loaded_modules():
             loaded_mods = fd.readlines()
         for line in loaded_mods:
             loaded_modules.append(line.split()[0])
+        # DRC - Start
+        print(loaded_modules)
+        # DRC - End
     return loaded_modules
 
 def check_modules():
-    '''Checks that igb_uio is loaded'''
+    '''Checks that a kernel module is loaded'''
     global dpdk_drivers
 
     # list of supported modules
     mods =  [{"Name" : driver, "Found" : False} for driver in dpdk_drivers]
+    # DRC - Start
+    print(mods)
+    # DRC - End
 
     # first check if module is loaded
     for line in get_loaded_modules():
@@ -503,6 +514,9 @@ def get_nic_details():
         else:
             # should we warn the user?
             devices[d]['NUMA'] = -1
+    # DRC - Start
+    # print(devices)
+    # DRC - End
 
 def dev_id_from_dev_name(dev_name):
     '''Take a device "name" - a string passed in by user to identify a NIC
@@ -631,6 +645,11 @@ def bind_one(dev_id, driver, force):
     '''Bind the device given by "dev_id" to the driver "driver". If the device
     is already bound to a different driver, it will be unbound first'''
     dev = devices[dev_id]
+    # DRC - Start 
+    print(dev_id)
+    print(dev)
+    print(driver)
+    # DRC - End
     saved_driver = None # used to rollback any unbind in case of failure
 
     # prevent disconnection of our ssh session
@@ -660,6 +679,9 @@ def bind_one(dev_id, driver, force):
             dev["Driver_str"] = "" # clear driver string
 
     # if we are binding to one of DPDK drivers, add PCI id's to that driver
+    # DRC - Start
+    print(dpdk_drivers)
+    # DRC - End
     if driver in dpdk_drivers:
         filename = "/sys/bus/pci/drivers/%s/new_id" % driver
         try:

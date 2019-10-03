@@ -5791,7 +5791,7 @@ HOT_FUNC static int slave_one_lcore(__attribute__((unused)) void *dummy)
 }
 
 
-
+#ifndef __PPC64__
 COLD_FUNC uint32_t get_cores_mask(uint32_t cores,int offset){
     int i;
 
@@ -5804,7 +5804,7 @@ COLD_FUNC uint32_t get_cores_mask(uint32_t cores,int offset){
     }
     return (res);
 }
-
+#endif
 
 static char *g_exe_name;
 COLD_FUNC const char *get_exe_name() {
@@ -6103,21 +6103,32 @@ COLD_FUNC int  update_dpdk_args(void){
 
     if ( CGlobalInfo::m_options.m_is_lowend ) { // assign all threads to core 0
         g_cores_str[0] = '(';
-        lpsock->get_cores_list(g_cores_str + 1);
+        lpsock->get_cores_list_lowend(g_cores_str + 1);
         strcat(g_cores_str, ")@0");
         SET_ARGS("--lcores");
         SET_ARGS(g_cores_str);
     } else {
+#ifdef __PPC64__
+    /* Use DPDK EAL corelist to allow greater number of threads for PPC */
+        lpsock->get_cores_list(g_cores_str);
+        SET_ARGS("-l");
+        SET_ARGS(g_cores_str);
+#else
         snprintf(g_cores_str, sizeof(g_cores_str), "0x%llx" ,(unsigned long long)lpsock->get_cores_mask());
         if (core_mask_sanity(strtol(g_cores_str, NULL, 16)) < 0) {
             return -1;
         }
         SET_ARGS("-c");
         SET_ARGS(g_cores_str);
+#endif
     }
 
     SET_ARGS("-n");
+#ifdef __PPC64__
+    SET_ARGS("8");
+#else
     SET_ARGS("4");
+#endif
 
     if ( lpp->getVMode() == 0  ) {
         SET_ARGS("--log-level");

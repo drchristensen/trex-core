@@ -66,6 +66,7 @@ uint32_t CPlatformSocketInfoNoConfig::get_cores_count() {
     return cores_count;
 }
 
+#ifndef __PPC64__
 /* return the core mask */
 uint64_t CPlatformSocketInfoNoConfig::get_cores_mask(){
 
@@ -81,9 +82,27 @@ uint64_t CPlatformSocketInfoNoConfig::get_cores_mask(){
    }
    return (res);
 }
+#endif
+
+#ifdef __PPC64__
+/* get comma seperated cores list */
+void CPlatformSocketInfoNoConfig::get_cores_list(char *core_list_ptr){
+    std::stringstream core_list;
+    uint32_t cores_number = get_cores_count();
+
+    core_list << "0";
+
+    for (int i=1; i<cores_number; i++) {
+        core_list << "," << i;
+    }
+		// DRC - Why the check for 100 characters?  Need a #define for the size
+    assert(core_list.tellp() < 100);
+    strcpy(core_list_ptr, core_list.str().c_str());
+}
+#endif
 
 /* get cores list, separated by comma (for lowend core affinity) */
-void CPlatformSocketInfoNoConfig::get_cores_list(char *core_list_ptr){
+void CPlatformSocketInfoNoConfig::get_cores_list_lowend(char *core_list_ptr){
     std::stringstream core_list;
     uint32_t cores_number = get_cores_count();
 
@@ -219,7 +238,13 @@ bool CPlatformSocketInfoConfig::init(){
 
 
 void CPlatformSocketInfoConfig::dump(FILE *fd){
+#ifdef __PPC64__
+    char core_list[100];
+		get_cores_list(core_list);
+    fprintf(fd," core_list  %s \n", core_list);
+#else
     fprintf(fd," core_mask  %llx  \n",(unsigned long long)get_cores_mask());
+#endif
     fprintf(fd," sockets :");
     int i;
     for (i=0; i<MAX_SOCKETS_SUPPORTED; i++) {
@@ -305,6 +330,7 @@ bool CPlatformSocketInfoConfig::sanity_check(){
     return (init());
 }
 
+#ifndef __PPC64__
 /* return the core mask */
 uint64_t CPlatformSocketInfoConfig::get_cores_mask(){
     int i;
@@ -328,9 +354,29 @@ uint64_t CPlatformSocketInfoConfig::get_cores_mask(){
     }
     return (mask);
 }
+#endif
+
+#ifdef __PPC64__
+/* get comma seperated cores list */
+void CPlatformSocketInfoConfig::get_cores_list(char *core_list_ptr){
+    std::stringstream core_list;
+
+    core_list << m_platform->m_master_thread;
+    if (m_rx_is_enabled) {
+        core_list << "," << m_platform->m_rx_thread;
+    }
+
+    for (int i=0; i<MAX_THREADS_SUPPORTED; i++) {
+        if ( m_thread_phy_to_virtual[i] ) {
+            core_list << "," << i;
+        }
+    }
+    strcpy(core_list_ptr, core_list.str().c_str());
+}
+#endif
 
 /* get cores list, separated by comma (for lowend core affinity) */
-void CPlatformSocketInfoConfig::get_cores_list(char *core_list_ptr){
+void CPlatformSocketInfoConfig::get_cores_list_lowend(char *core_list_ptr){
     std::stringstream core_list;
 
     assert(m_platform->m_master_thread < 64);
@@ -421,13 +467,21 @@ bool CPlatformSocketInfo::sanity_check(){
     return ( m_obj->sanity_check());
 }
 
+#ifndef __PPC64__
 /* return the core mask */
 uint64_t CPlatformSocketInfo::get_cores_mask(){
     return ( m_obj->get_cores_mask());
 }
+#endif
 
+#ifdef __PPC64__
 void CPlatformSocketInfo::get_cores_list(char *core_list_ptr){
     m_obj->get_cores_list(core_list_ptr);
+}
+#endif
+
+void CPlatformSocketInfo::get_cores_list_lowend(char *core_list_ptr){
+    m_obj->get_cores_list_lowend(core_list_ptr);
 }
 
 virtual_thread_id_t CPlatformSocketInfo::thread_phy_to_virt(physical_thread_id_t  phy_id){
