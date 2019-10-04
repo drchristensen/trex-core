@@ -66,7 +66,6 @@ public:
     /* is socket enabled */
     virtual bool is_sockets_enable(socket_id_t socket)=0;
 
-		// DRC - What does this mean?  Why?  Does it apply to Power?
     /* number of main active sockets. socket #0 is always used  */
     virtual socket_id_t max_num_active_sockets()=0;
 
