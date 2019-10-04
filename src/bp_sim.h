@@ -609,7 +609,13 @@ public:
 
     /* CACHE_LINE */
 #ifdef __PPC64__
+// DRC - Why is this necessary? What's the real diff between environments
+// that causes sizeof(CGenNode) to change between 192 and 256?
+#ifdef TREX_SIM
+    uint64_t            m_pad3[8];
+#else
     uint64_t            m_pad3[16];
+#endif
 #else
     uint64_t            m_pad3[8];
 #endif
@@ -630,7 +636,11 @@ public:
 
     /* CACHE_LINE */
 #ifdef __PPC64__
+#ifdef TREX_SIM
+    uint64_t            m_pad3[8];
+#else
     uint64_t            m_pad3[16];
+#endif
 #else
     uint64_t            m_pad3[8];
 #endif
@@ -3395,18 +3405,20 @@ class CRXCoreIgnoreStat {
 };
 
 #if 0
+// DRC - Test code to find sizeof() at compile time
 #define COMPILE_TIME_SIZEOF(t)      template<int s> struct SIZEOF_ ## t ## _IS; \
                                     struct foo { \
                                         int a,b; \
                                     }; \
                                     SIZEOF_ ## t ## _IS<sizeof(t)> SIZEOF_ ## t ## _IS;
 
+COMPILE_TIME_SIZEOF(CGenNode);
 COMPILE_TIME_SIZEOF(CGenNodeCommand);
 COMPILE_TIME_SIZEOF(CGenNodeNatInfo);
 COMPILE_TIME_SIZEOF(CGenNodeLatencyPktInfo);
 COMPILE_TIME_SIZEOF(CGenNodeTXFIF);
 
-static_assert(sizeof(CGenNodeCommand) == 256, "Not 256");
+// static_assert(sizeof(CGenNodeCommand) == 256, "Not 256");
 #endif
 
 static_assert(sizeof(CGenNodeCommand) == sizeof(CGenNode), "sizeof(CGenNodeCommand) != sizeof(CGenNode)" );

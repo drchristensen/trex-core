@@ -148,7 +148,11 @@ struct CGenNodeNatInfo : public CGenNodeMsgBase {
     uint32_t      m_pad3;
     CNatFlowInfo  m_data[MAX_NAT_FLOW_INFO];
 #ifdef __PPC64__
+#ifdef TREX_SIM
+    uint64_t      m_pad4[8];
+#else
     uint64_t      m_pad4[16];
+#endif
 #else
     uint64_t      m_pad4[8];
 #endif
@@ -179,7 +183,11 @@ struct CGenNodeLatencyPktInfo : public CGenNodeMsgBase {
 
     uint32_t      m_pad4[MAX_PKT_MSG_INFO];
 #ifdef __PPC64__
+#ifdef TREX_SIM
+    uint64_t      m_pad5[8];
+#else
     uint64_t      m_pad5[16];
+#endif
 #else
     uint64_t      m_pad5[8];
 #endif
