@@ -901,10 +901,9 @@ Other network devices
                 self.set_only_mellanox_nics()
 
         if self.get_only_mellanox_nics():
-            # DRC - Figure this out
-            # if not pa().no_ofed_check:
-                # self.verify_ofed_os()
-                # self.check_ofed_version()
+            if not pa().no_ofed_check:
+                self.verify_ofed_os()
+                self.check_ofed_version()
 
             for key in if_list:
                 if key == 'dummy':
